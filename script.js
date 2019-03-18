@@ -14,23 +14,30 @@ var bodies = [
 
 /////////
 
-var two = new Two({
-    type: Two.Types["canvas"],
-    fullscreen: true,
-    autostart: true
-}).appendTo(document.body);
+var world = {
+	init: function(){
+		this.two = new Two({
+		    type: Two.Types["canvas"],
+		    autostart: true,
+			fullscreen: true
+		});
+		this.two.appendTo($("#canvasContainer").get(0));
 
-var twoE = $(two.renderer.domElement);
-twoE.addClass("canvas");
+		console.log(this.two);
 
-function doResize(){
-    two.width = window.innerWidth;
-    two.height = window.innerHeight;
+		this.elem = $(this.two.renderer.domElement);
+
+		this.elem.attr("id", "canvas");
+
+		window.addEventListener("resize", this.resize);
+	},
+	resize: function(){
+		var e = $("#canvasContainer");
+	    two.width = e.width();
+	    two.height = e.height();
+	}
 }
 
-doResize();
-window.addEventListener("resize", doResize);
+world.init();
 
-
-
-two.makeCircle(10, 10, 200);
+world.two.makeCircle(200, 200, 100);

@@ -1,12 +1,50 @@
 *{
+	margin: 0px;
+	padding: 0px;
+	color: #fff;
 }
 
 html{
+	height: 100%;
 }
 
 body{
+	height: 100%;
+
 }
 
-#canvas{
-    border: 1px solid #f66;
+#canvasContainer{
+
+
+
+}
+	#canvas{
+
+	}
+
+.eCol{
+	display: flex;
+	flex-direction: row;
+}
+
+.eRow{
+	display: flex;
+	flex-direction: col;
+}
+
+.eBetween{
+	justify-content: space-between;
+}
+
+.eCenter{
+	justify-content: center;
+	align-items: center;
+}
+
+.eWide{
+	width: 100%;
+}
+
+.eTall{
+	height: 100%;
 }
