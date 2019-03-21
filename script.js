@@ -1,43 +1,23 @@
-//Data
-var bodies = [
-    {
-        name: "A",
-        mass: "100",
-        color: "#0d0"
-    },
-    {
-        name: "B",
-        mass: "20",
-        color: "#00f"
-    }
-];
-
+// Copyright 2019 Jason Harriot
 /////////
 
-var world = {
-	init: function(){
-		this.two = new Two({
-		    type: Two.Types["canvas"],
-		    autostart: true,
-			fullscreen: true
-		});
-		this.two.appendTo($("#canvasContainer").get(0));
-
-		console.log(this.two);
-
-		this.elem = $(this.two.renderer.domElement);
-
-		this.elem.attr("id", "canvas");
-
-		window.addEventListener("resize", this.resize);
-	},
-	resize: function(){
-		var e = $("#canvasContainer");
-	    two.width = e.width();
-	    two.height = e.height();
-	}
-}
-
 world.init();
+var x = new Body(100);
+x.setPos(700, 500);
+x.setVel(0, 8);
+x.plot = true;
 
-world.two.makeCircle(200, 200, 100);
+var x2 = new Body(100);
+x2.setPos(700, 400);
+x2.setVel(0, 8);
+x2.plot = true;
+
+
+
+var y = new Body(10000);
+y.setPos(500, 500);
+y.setVel(0, -0.1);
+
+world.bodies.add(x2);
+world.bodies.add(x);
+world.bodies.add(y);
