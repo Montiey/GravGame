@@ -2,22 +2,19 @@
 /////////
 
 world.init();
-var x = new Body(100);
-x.setPos(700, 500);
-x.setVel(0, 8);
-x.plot = true;
+// var x = new Body(100);
+// x.setPos(700, 500);
+// x.setVel(0, 10);
+//
+//
+// var y = new Body(10000);
+// y.setPos(630, 500);
+//
+// world.bodies.add(x);
+// world.bodies.add(y);
 
-var x2 = new Body(100);
-x2.setPos(700, 400);
-x2.setVel(0, 8);
-x2.plot = true;
-
-
-
-var y = new Body(10000);
-y.setPos(500, 500);
-y.setVel(0, -0.1);
-
-world.bodies.add(x2);
-world.bodies.add(x);
-world.bodies.add(y);
+for(var i = 0; i < 500; i++){
+	var x = new Body(Math.random() * 1000 + 100);
+	x.setPos(Math.random() * world.two.width, Math.random() * world.two.height);
+	world.bodies.add(x);
+}

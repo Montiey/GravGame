@@ -1,5 +1,5 @@
 var world = {
-    G: 2,
+    G: .1,
     two: null,
     elem: null,
 	init: function(){
@@ -33,6 +33,8 @@ var world = {
     update: function(){
         for(var obj of this.bodies.list){
 
+			if(obj.anchor) continue;	//Don't do any forces for the reference point object
+
             force = {
                 x: 0,
                 y: 0
@@ -50,9 +52,11 @@ var world = {
 
                 var forceMag = (world.G * i.mass * obj.mass) / Math.pow(distance, 2);
 
+				var scaryAngle = Math.abs(Math.atan(yDist / xDist));
+
                 thisForce = {
-                    x: (forceMag / distance) * xDist,
-                    y: (forceMag / distance) * yDist
+                    x: Math.sign(xDist) * forceMag * Math.cos(scaryAngle),
+                    y:  Math.sign(yDist) * forceMag * Math.sin(scaryAngle)
                 }
 
                 force.x += thisForce.x;
@@ -73,8 +77,31 @@ var world = {
             let currPos = obj.getPos();
             obj.setPos(currPos.x + obj.velocity.x, currPos.y + obj.velocity.y);
 
+
+			//
+			
+			if(obj.getPos().x < 0){
+				obj.setPos(0, obj.getPos().y);
+				obj.velocity.x *= -1;
+			}
+
+			if(obj.getPos().y < 0){
+				obj.setPos(obj.getPos().x, 0);
+				obj.velocity.y *= -1;
+			}
+
+			if(obj.getPos().x > world.two.width){
+				obj.setPos(world.two.width, obj.getPos().y);
+				obj.velocity.x *= -1;
+			}
+
+			if(obj.getPos().y > world.two.height){
+				obj.setPos(obj.getPos().x, world.two.height);
+				obj.velocity.y *= -1;
+			}
+
             if(obj.plot){
-                if(Math.random() < .3) var p = world.two.makeCircle(obj.getPos().x, obj.getPos().y, 2);
+                if(Math.random()) var p = world.two.makeCircle(obj.getPos().x, obj.getPos().y, 2);
             }
         }
     }
