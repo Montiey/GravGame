@@ -1,5 +1,5 @@
 var world = {
-    G: 12,
+    G: .1,
     two: null,
     elem: null,
 	init: function(){
