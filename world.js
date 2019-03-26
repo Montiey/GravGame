@@ -1,5 +1,5 @@
 var world = {
-    G: 2,
+    G: 12,
     two: null,
     elem: null,
 	init: function(){
@@ -14,9 +14,12 @@ var world = {
 
 		this.elem.attr("id", "canvas");
 
-        this.two.bind("update", function(){
-            world.update();
-        });
+        // this.two.bind("update", function(){
+            // world.update();
+        // });
+        setTimeout(function(){
+            setInterval(world.update, 500);
+        }, 2000);
 	},
     bodies: {
         add: function(obj){
@@ -31,51 +34,36 @@ var world = {
         }
     },
     update: function(){
-        for(var obj of this.bodies.list){
+        for(var target of world.bodies.list){
 
-            force = {
-                x: 0,
-                y: 0
-            }
+            if(target.anchored) continue;
 
-            for(var i of this.bodies.list){
-                if(i == obj) continue;
+            sumForce = new Vector();
+
+            for(var influence of world.bodies.list){
+                if(influence == target) continue;  //Don't be stuipid, stuipid
 
                 //F = (G*m1*m2) / (d^2)
 
-                var xDist = i.getPos().x - obj.getPos().x;
-                var yDist = i.getPos().y - obj.getPos().y;
+                var distance = influence.pos.subtract(target.pos);
+                console.log(distance.length());
+                var gravitation = (world.G * influence.mass * target.mass) / Math.pow(distance.length(), 2);
 
-                var distance = Math.sqrt(Math.pow(xDist , 2) + Math.pow(yDist, 2))
+                // var thisForce = new Vector((gravitation / distance) * xDist, (gravitation / distance) * yDist);
+                var thisForce = distance.multiply(gravitation / distance.length());
 
-                var forceMag = (world.G * i.mass * obj.mass) / Math.pow(distance, 2);
-
-                thisForce = {
-                    x: (forceMag / distance) * xDist,
-                    y: (forceMag / distance) * yDist
-                }
-
-                force.x += thisForce.x;
-                force.y += thisForce.y;
-
+                sumForce.add(thisForce);
             }
 
+            target.accel = sumForce.divide(target.mass);
 
-            obj.accel.x = force.x / obj.mass;
-            obj.accel.y = force.y / obj.mass;
+            target.vel.add(target.accel);
+        }
 
-
-            // console.log("Sum force: " + JSON.stringify(force));
-
-            obj.velocity.x += obj.accel.x;
-            obj.velocity.y += obj.accel.y;
-
-            let currPos = obj.getPos();
-            obj.setPos(currPos.x + obj.velocity.x, currPos.y + obj.velocity.y);
-
-            if(obj.plot){
-                if(Math.random() < .3) var p = world.two.makeCircle(obj.getPos().x, obj.getPos().y, 2);
-            }
+        for(var obj of world.bodies.list){
+            console.log(obj.vel);
+            obj.pos.add(obj.vel);
+            obj.elem.translation.set(obj.pos.x, obj.pos.y);
         }
     }
 }
@@ -83,40 +71,12 @@ var world = {
 function Body(mass){
     this.mass = mass;
 
-    var radius = Math.sqrt((3*mass) / (4 * Math.PI));
+    this.elem = world.two.makeCircle(0, 0, Math.sqrt((3*this.mass) / (4 * Math.PI)));
+    world.bodies.list.push(this);
 
-    this.elem = world.two.makeCircle(0, 0, radius);
-
-    this.setPos = function(x, y){
-        this.elem.translation.set(x, y);
-    }
-
-    this.getPos = function(){
-        return {
-            x: this.elem.translation.x,
-            y: this.elem.translation.y
-        }
-    }
-
-    this.setVel = function(x, y){
-        this.velocity = {x: x, y: y};
-    }
-
-    this.velocity = {
-        x: 0,
-        y: 0
-    }
-
-    this.accel = {
-        x: 0,
-        y: 0
-    }
-
-    this.remove = function(){
-        var index = world.bodies.list.indexOf(this);
-        console.log("Index: " + index);
-        world.bodies.list.slice(index);
-    }
+    this.pos = new Vector();
+    this.vel = new Vector();
+    this.accel = new Vector();
 
     return this;
 }
