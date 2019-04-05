@@ -2,6 +2,7 @@
 	margin: 0px;
 	padding: 0px;
 	color: #000;
+	font-family: Arial;
 }
 
 html{
@@ -39,7 +40,9 @@ body{
 	.butt:hover{
 		border-radius: 0px;
 	}
-
+	.butt:active{
+		background-color: #fff;
+	}
 	#entryContainer{
 		border: 1px solid #fff;
 		margin: 10px;
@@ -47,14 +50,13 @@ body{
 		.bodyEntry{
 			margin: 10px;
 
-			padding: 4px;
-			border: 1px solid #00f;
+			padding: 5px;
 			border-radius: 10px;
-			background-color: #fbb;
+			background-color: #fff;
 
 			cursor: pointer;
 		}
-		.bodyEntry:hover{
+		.entryHover{
 			padding: 0px;
 			border: 5px solid #00f;
 		}
@@ -62,16 +64,19 @@ body{
 				border: 1px solid #000;
 				background-color: #f00;
 				border-radius: 10px;
-				padding: 2px;
-				margin: 10px;
+				padding: 5px;
+				margin: 5px;
 			}
 			.entryDeleteButt:hover{
 				border-radius: 0px;
 			}
 			.entryText{
-				margin: 10px;
+				margin: 5px;
 
 			}
+		.entrySelected{
+			background-color: #f00;
+		}
 
 
 
@@ -92,8 +97,15 @@ body{
 	justify-content: space-between;
 }
 
+.eAround{
+	justify-content: space-around;
+}
+
 .eCenter{
 	justify-content: center;
+}
+
+.eAlign{
 	align-items: center;
 }
 

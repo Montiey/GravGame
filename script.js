@@ -17,8 +17,9 @@ world.init();
 //
 // world.select(a);
 
-for(var i = 0; i < 200; i++){
+for(var i = 0; i < 10; i++){
 	var x = new Body(Math.random() * 1000 + 100);
 	x.pos.set(Math.random() * world.two.width, Math.random() * world.two.height);
+	x.vel.set(Math.random() * 20 - 10, Math.random() * 20 - 10);
 	world.bodies.add(x);
 }
