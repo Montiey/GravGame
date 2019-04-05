@@ -1,36 +1,52 @@
 var world = {
-    G: 0.5,   //Gravitational constant (force multiplier)
-    two: null,  //Two canvas
-    elem: null, //JQuery node
+    G: 5,   //Big G constant (force multiplier)
+    two: null,  //Two canvas object
+    elem: null, //JQuery node of the canvas
     target: null,   //Selected Body
 	init: function(){
 		this.two = new Two({
 		    type: Two.Types["svg"],
 		    autostart: true,
+            width: 800,
+            height: 600
         });
 		this.two.appendTo($("#canvasContainer").get(0));
 
 		this.elem = $(this.two.renderer.domElement);
 		this.elem.attr("id", "canvas");
 
-        this.two.bind("update", function(){ //Set visual attributes every time they will be displayed
+        this.two.bind("update", function(){
             world.draw();
         });
 
-        setInterval(world.calculate, 0);   //Under the hood, to calculations all the time
+        $("#speedSlider").on("mousemove", function(){   //TODO: Doesn't register when just clicking, use multi-event triggers?
+            var clock = Math.round($("#speedSlider").val());
+            $("#speedLabel").text((100-clock) + "%");
+            world.setClock(clock);
+        });
+
+        world.setClock(50);
 	},
+    setClock: function(del){
+        clearInterval(world.clockInterval);
+        world.clockInterval = setInterval(world.calculate, del);
+    },
     bodies: {   //Manager for Bodies
         add: function(obj){
             this.list.push(obj);
         },
         remove: function(obj){
             this.list.splice(this.list.indexOf(obj), 1);
-            obj.button.elem.remove();
+            if(world.target == obj && this.list.length > 0){
+                this.list[0].select();
+            }
+            obj.panelEntry.elem.remove();
             world.two.remove(obj.elem);
+            world.two.remove(obj.pointerGroup);
         },
         list: []
     },
-    calculate: function(){  //Calculate gravity, positions
+    calculate: function(){  //Calculate gravity, positions of Bodies
         for(var target of world.bodies.list){
             if(target.anchored) continue;
 
@@ -42,7 +58,6 @@ var world = {
                 };  //Don't be stupid, stupid
 
                 //F = (G*m1*m2) / (d^2)
-
                 var distance = Vector.subtract(influence.pos, target.pos);
 
                 var gravitation = (world.G * influence.mass * target.mass) / Math.pow(distance.length(), 2);
@@ -56,107 +71,166 @@ var world = {
 
             target.vel.add(target.accel);
         }
-        for(var target of world.bodies.list){
+        for(var target of world.bodies.list){   //Update positions
             target.pos.add(target.vel);
         }
-    },
-    draw: function(){   //Update each body's visual position
-        var targetDelta = new Vector(0, 0);
-        if(world.target != undefined) targetDelta = new Vector(world.two.width/2, world.two.height/2).subtract(world.target.pos);
+        for(var a = 0; a < world.bodies.list.length; a++){  //Test for collisions
+            for(var b = a; b < world.bodies.list.length; b++){  //TODO: Reduce duplicate checks by 1?
+                var testA = world.bodies.list[a];
+                var testB = world.bodies.list[b];
 
-        for(var obj of world.bodies.list){
-            obj.elem.translation.set(obj.pos.x + targetDelta.x, obj.pos.y + targetDelta.y);
-            if(obj.plot && obj.plotter.counter.next().value){
-                var x = world.two.makeCircle(obj.pos.x, obj.pos.y, 2);
-                obj.plotter.group.add(x);
+                if(testA == testB) continue;
+                if(collide(testA, testB)){
+                    world.bodies.add(combine(testA, testB));
+                    world.bodies.remove(testA);
+                    world.bodies.remove(testB);
+                }
             }
         }
     },
-    select: function(obj){  //Make a body selected
-        world.unselect(world.target);
-        obj.elem.fill = "#fbb";
-        obj.selected = true;
-        world.target = obj;
-    },
-    unselect: function(obj){    //Make a body unselected
-        if(obj == undefined) return;
-        obj.selected = false;
-        obj.elem.fill = "#fff";
-        world.target = null;
-    },
-    toggle: function(obj){
-        if(obj.selected){
-            world.unselect(obj);
-        } else{
-            world.select(obj);
+    draw: function(){   //Update each body's visual position (Two element)
+        var viewportDelta = new Vector(world.two.width/2, world.two.height/2).subtract(world.target.pos);   //Arbitrary distance from world coordinates to center of Two canvas
+
+        for(var obj of world.bodies.list){
+            obj.elem.translation.set(obj.pos.x + viewportDelta.x, obj.pos.y + viewportDelta.y); //Set the element's position relative to the viewport
+
+            if(within(obj.elem.translation.x, 0, world.two.width) && within(obj.elem.translation.y, 0, world.two.height)){  //Draw the object, or...
+                obj.pointerGroup.translation.set(-999, -999);   //TODO: hide better?
+            } else{ //...draw a pointer
+                obj.pointerGroup.translation.set(bound(obj.elem.translation.x, 0, world.two.width), bound(obj.elem.translation.y, 0, world.two.height));    //TODO: Make the angle not stuipid, point correctly near corners
+                obj.elem.translation.set(-999, -999);   //TODO: hide better?
+                obj.pointerGroup.rotation = Math.atan2((world.target.pos.y - obj.pos.y), (world.target.pos.x - obj.pos.x)) - Math.PI/2;
+                obj.pointerGroup.scale = Math.max(0.3, 400/Vector.subtract(world.target.pos, obj.pos).length());
+                if(obj.pointerGroup.scale == 0.3){
+                    obj.pointerGroup.fill = "rgb(181, 181, 181)";
+                } else{
+                    obj.pointerGroup.fill = "#0ff";
+                }
+            }
+
         }
     }
 }
 
 function Body(mass){    //Make a new Body
     this.mass = mass;
-
-    this.elem = world.two.makeCircle(0, 0, Math.sqrt((3*this.mass) / (4 * Math.PI)));   //Emulate the volume of a sphere
+    this.radius = Math.sqrt((3*this.mass) / (4 * Math.PI));
+    this.elem = world.two.makeCircle(0, 0, this.radius);   //Emulate the volume of a sphere
 
     this.pos = new Vector();
     this.vel = new Vector();
     this.accel = new Vector();
 
-	function* everyN(num){ //TODO: Better place to put this?
-		var curr = 0;
-		while(1){
-			curr++;
-			if(curr == num){
-				curr = 0;
-				yield 1;
-			}
-			else yield 0;
-		}
-	}
-
-    this.plotter = {
-        counter: everyN(2),
-        group: world.two.makeGroup()
-    }
-
-    var local = this;   //Todo: escape callback hell
-
-    world.two.update();
-
     this.elem.linewidth = 5;
     this.elem.stroke = null;
 
+    ////////
+
+
+    this.select = function(){  //Select it
+        if(world.target != undefined) world.target.unselect();
+        this.elem.fill = "rgb(255, 0, 0)";
+        this.selected = true;
+        world.target = this;
+        this.panelEntry.elem.addClass("entrySelected");
+    }
+    this.unselect = function(){ //Unselect it
+        this.selected = false;
+        this.elem.fill = "#fff";
+        world.target = null;
+        this.panelEntry.elem.removeClass("entrySelected");
+    }
+
+
+    this.highlight = function(){    //Activate its border
+        this.elem.stroke = "#00f";
+        this.pointerGroup.stroke = "#00f";
+        this.panelEntry.elem.addClass("entryHover");
+    }
+    this.unhighlight = function(){  //Deactivate its border
+        this.elem.stroke = null
+        this.pointerGroup.stroke = null;
+        this.panelEntry.elem.removeClass("entryHover");
+    }
+
+    /////
+
+	// function* everyN(num){ //TODO: Better place to put this?
+	// 	var curr = 0;
+	// 	while(1){
+	// 		curr++;
+	// 		if(curr == num){
+	// 			curr = 0;
+	// 			yield 1;
+	// 		}
+	// 		else yield 0;
+	// 	}
+	// }
+    //
+    // this.plotter = {
+    //     counter: everyN(2),
+    //     group: world.two.makeGroup()
+    // }
+
+    this.panelEntry = new BodyPanelEntry(this);
+
+    if(world.target == null) this.select();
+
+    var local = this;   //TODO: escape callback hell
+
+    var p = world.two.makePolygon(0, 0, 20, 3);
+    p.translation.set(0, 20);
+    p.fill = "#0ff";
+    p.stroke = null;
+    p.linewidth = 5;
+
+    this.pointerGroup = world.two.makeGroup(p);
+
+    world.two.update(); //Needed to attach event listeners
+
     this.elem._renderer.elem.addEventListener("mousedown", function(){
-        world.toggle(local);
+        local.select();
     });
-
     this.elem._renderer.elem.addEventListener("mouseenter", function(){
-        local.elem.stroke = "#00f";
+        local.highlight();
     });
-
     this.elem._renderer.elem.addEventListener("mouseleave", function(){
-        local.elem.stroke = null;
+        local.unhighlight();
     });
-
-    this.button = new BodyEntry(this);
+    p._renderer.elem.addEventListener("mousedown", function(){
+        local.select();
+    });
+    p._renderer.elem.addEventListener("mouseenter", function(){
+        local.highlight();
+    });
+    p._renderer.elem.addEventListener("mouseleave", function(){
+        local.unhighlight();
+    });
 
     return this;
 }
 
-function BodyEntry(body){
+function BodyPanelEntry(body){
     this.elem = $(document.createElement("div"));
-    this.elem.addClass("bodyEntry eRow eCenter eAround");
+    this.elem.addClass("bodyEntry eRow eAlign eBetween");
 
-    var text = $(document.createElement("div")).text("Mass: " + body.mass).addClass("entryText")
-
+    var text = $(document.createElement("div")).text("M: " + Math.round(body.mass)).addClass("entryText")
 
     this.elem.append(text);
     this.elem.click(function(){
-        world.toggle(body);
+        body.select();
     });
+
+    this.elem.on("mouseenter", function(){
+        body.highlight();
+    });
+    this.elem.on("mouseleave", function(){
+        body.unhighlight();
+    });
+
     var subbutt = $(document.createElement("div"));
     subbutt.addClass("entryDeleteButt");
-    subbutt.text("Delete");
+    subbutt.text("X");
     subbutt.click(function(){
         world.bodies.remove(body);
     });
