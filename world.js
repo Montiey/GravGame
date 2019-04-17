@@ -19,13 +19,18 @@ var world = {
             world.draw();
         });
 
-        $("#speedSlider").on("mousemove", function(){   //TODO: Doesn't register when just clicking, use multi-event triggers?
-            var clock = Math.round($("#speedSlider").val());
-            $("#speedLabel").text((100-clock) + "%");
-            world.setClock(clock);
+        var clockSlider = new Slider($("#speedSlider"), $("#speedLabel"), function(self){
+            var clock = Math.round(self.value);
+            world.setClock(100-clock);
+            self.label.text(clock + "%");
         });
-
         world.setClock(50);
+        $("#speedContainer").append(clockSlider.elem);
+
+        var zoomIncrement = new Increment(function(self){
+            console.log(self.value);
+        });
+        $("#zoomContainer").append(zoomIncrement.elem);
 	},
     setClock: function(del){
         clearInterval(world.clockInterval);

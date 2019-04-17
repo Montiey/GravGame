@@ -30,19 +30,6 @@ body{
 		.sidePanel{
 			border: 1px solid #fff;
 		}
-	.butt{
-		border: 1px solid #fff;
-		border-radius: 10px;
-		background-color: #f00;
-		padding: 10px;
-		cursor: pointer;
-	}
-	.butt:hover{
-		border-radius: 0px;
-	}
-	.butt:active{
-		background-color: #fff;
-	}
 	#entryContainer{
 		border: 1px solid #fff;
 		margin: 10px;
@@ -109,9 +96,13 @@ body{
 	align-items: center;
 }
 
+.eStart{
+	justify-content: flex-start;
+}
 
-
-
+.eEnd{
+	justify-content: flex-end;
+}
 
 .eWide{
 	width: 100%;
