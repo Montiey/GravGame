@@ -1,5 +1,5 @@
 var world = {
-    G: 5,   //Big G constant (force multiplier)
+    G: .001,   //Big G constant (force multiplier)
     two: null,  //Two canvas object
     elem: null, //JQuery node of the canvas
     target: null,   //Selected Body
@@ -19,13 +19,18 @@ var world = {
             world.draw();
         });
 
-        $("#speedSlider").on("mousemove", function(){   //TODO: Doesn't register when just clicking, use multi-event triggers?
-            var clock = Math.round($("#speedSlider").val());
-            $("#speedLabel").text((100-clock) + "%");
-            world.setClock(clock);
+        var clockSlider = new Slider($("#speedSlider"), $("#speedLabel"), function(self){
+            var clock = Math.round(self.value);
+            world.setClock(100-clock);
+            self.label.text(clock + "%");
         });
-
         world.setClock(50);
+        $("#speedContainer").append(clockSlider.elem);
+
+        var zoomIncrement = new Increment(function(self){
+            console.log(self.value);
+        });
+        $("#zoomContainer").append(zoomIncrement.elem);
 	},
     setClock: function(del){
         clearInterval(world.clockInterval);
@@ -67,12 +72,16 @@ var world = {
                 sumForce.add(thisForce);
             }
 
-            target.accel = Vector.divide(sumForce, target.mass);
-
-            target.vel.add(target.accel);
+            target.vel.add(Vector.divide(sumForce, target.mass));	//Increment vel by accel
         }
         for(var target of world.bodies.list){   //Update positions
             target.pos.add(target.vel);
+			if(target.isShip){
+				target.rot += target.rVel;
+				var mag = target.vel.length();
+				target.vel.x += target.burnAccel * Math.cos(target.rot - Math.PI/2);
+				target.vel.y += target.burnAccel * Math.sin(target.rot - Math.PI/2);
+			}
         }
         for(var a = 0; a < world.bodies.list.length; a++){  //Test for collisions
             for(var b = a; b < world.bodies.list.length; b++){  //TODO: Reduce duplicate checks by 1?
@@ -94,7 +103,7 @@ var world = {
         for(var obj of world.bodies.list){
             obj.elem.translation.set(obj.pos.x + viewportDelta.x, obj.pos.y + viewportDelta.y); //Set the element's position relative to the viewport
 
-            if(within(obj.elem.translation.x, 0, world.two.width) && within(obj.elem.translation.y, 0, world.two.height)){  //Draw the object, or...
+            if(within(obj.elem.translation.x, -obj.radius, world.two.width + obj.radius) && within(obj.elem.translation.y, -obj.radius, world.two.height + obj.radius)){  //Draw the object, or...
                 obj.pointerGroup.translation.set(-999, -999);   //TODO: hide better?
             } else{ //...draw a pointer
                 obj.pointerGroup.translation.set(bound(obj.elem.translation.x, 0, world.two.width), bound(obj.elem.translation.y, 0, world.two.height));    //TODO: Make the angle not stuipid, point correctly near corners
@@ -107,7 +116,9 @@ var world = {
                     obj.pointerGroup.fill = "#0ff";
                 }
             }
-
+			if(obj.isShip){
+				obj.elem.rotation = obj.rot;
+			}
         }
     }
 }
@@ -119,7 +130,7 @@ function Body(mass){    //Make a new Body
 
     this.pos = new Vector();
     this.vel = new Vector();
-    this.accel = new Vector();
+    // this.accel = new Vector();
 
     this.elem.linewidth = 5;
     this.elem.stroke = null;
@@ -129,7 +140,7 @@ function Body(mass){    //Make a new Body
 
     this.select = function(){  //Select it
         if(world.target != undefined) world.target.unselect();
-        this.elem.fill = "rgb(255, 0, 0)";
+        this.elem.fill = "#f00";
         this.selected = true;
         world.target = this;
         this.panelEntry.elem.addClass("entrySelected");
@@ -153,25 +164,6 @@ function Body(mass){    //Make a new Body
         this.panelEntry.elem.removeClass("entryHover");
     }
 
-    /////
-
-	// function* everyN(num){ //TODO: Better place to put this?
-	// 	var curr = 0;
-	// 	while(1){
-	// 		curr++;
-	// 		if(curr == num){
-	// 			curr = 0;
-	// 			yield 1;
-	// 		}
-	// 		else yield 0;
-	// 	}
-	// }
-    //
-    // this.plotter = {
-    //     counter: everyN(2),
-    //     group: world.two.makeGroup()
-    // }
-
     this.panelEntry = new BodyPanelEntry(this);
 
     if(world.target == null) this.select();
@@ -180,13 +172,104 @@ function Body(mass){    //Make a new Body
 
     var p = world.two.makePolygon(0, 0, 20, 3);
     p.translation.set(0, 20);
-    p.fill = "#0ff";
+    p.fill = "#0f0";
     p.stroke = null;
     p.linewidth = 5;
 
     this.pointerGroup = world.two.makeGroup(p);
 
     world.two.update(); //Needed to attach event listeners
+
+    this.elem._renderer.elem.addEventListener("mousedown", function(){
+        local.select();
+    });
+    this.elem._renderer.elem.addEventListener("mouseenter", function(){
+        local.highlight();
+    });
+    this.elem._renderer.elem.addEventListener("mouseleave", function(){
+        local.unhighlight();
+    });
+    p._renderer.elem.addEventListener("mousedown", function(){
+        local.select();
+    });
+    p._renderer.elem.addEventListener("mouseenter", function(){
+        local.highlight();
+    });
+    p._renderer.elem.addEventListener("mouseleave", function(){
+        local.unhighlight();
+    });
+
+    return this;
+}
+
+function Ship(mass){
+	this.isShip = true;
+
+    this.mass = mass;
+    this.radius = 10;
+	var _nose = world.two.makePolygon(0, 0, 5.79, 3);
+	var _fuse = world.two.makeRectangle(0, 0, 10, 30);
+	var _nozz = world.two.makePolygon(0, 0, 5, 3);
+	_nose.translation.set(0, -17.85);
+	_nozz.translation.set(0, 17);
+	this.elem = world.two.makeGroup([_nose, _fuse, _nozz]);
+
+    this.pos = new Vector();
+    this.vel = new Vector();
+
+	this.rot = 0;
+	this.rVel = 0;
+
+    this.elem.linewidth = 5;
+    this.elem.stroke = null;
+
+	this.burnAccel = 0;
+
+    ////////
+
+	this.burn = function(a){
+		this.burnAccel = a;
+	}
+
+    this.select = function(){  //Select it
+        if(world.target != undefined) world.target.unselect();
+        this.elem.fill = "#f00";
+        this.selected = true;
+        world.target = this;
+        this.panelEntry.elem.addClass("entrySelected");
+    }
+    this.unselect = function(){ //Unselect it
+        this.selected = false;
+        this.elem.fill = "#fff";
+        world.target = null;
+        this.panelEntry.elem.removeClass("entrySelected");
+    }
+
+    this.highlight = function(){    //Activate its border
+        this.elem.stroke = "#00f";
+        this.pointerGroup.stroke = "#00f";
+        this.panelEntry.elem.addClass("entryHover");
+    }
+    this.unhighlight = function(){  //Deactivate its border
+        this.elem.stroke = null
+        this.pointerGroup.stroke = null;
+        this.panelEntry.elem.removeClass("entryHover");
+    }
+
+    this.panelEntry = new BodyPanelEntry(this);
+
+    if(world.target == null) this.select();
+
+    var p = world.two.makePolygon(0, 0, 20, 3);
+    p.translation.set(0, 20);
+    p.stroke = null;
+    p.linewidth = 5;
+
+    this.pointerGroup = world.two.makeGroup(p);
+
+    world.two.update(); //Needed to attach event listeners
+
+	var local = this;
 
     this.elem._renderer.elem.addEventListener("mousedown", function(){
         local.select();
