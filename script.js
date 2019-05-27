@@ -3,9 +3,33 @@
 
 world.init();
 
-for(var i = 0; i < 3; i++){
-	var x = new Body(Math.random() * 1000 + 100);
-	x.pos.set(Math.random() * world.two.width, Math.random() * world.two.height);
-	x.vel.set(Math.random() * 20 - 10, Math.random() * 20 - 10);
+var craft = new Ship(10);
+world.bodies.add(craft);
+
+for(var i = 0; i < 5; i++){
+	var x = new Body(10e4);
+	x.pos.set(Math.random() * 5000 - 1000, Math.random() * 5000 - 1000);
+	x.vel.set(0, .75);
 	world.bodies.add(x);
 }
+
+document.addEventListener("keydown", function(e){
+	if(e.repeat) return;
+	switch(e.code){
+		case "KeyW":
+			craft.burn(.03);
+		break;
+
+		case "KeyS":
+			craft.burn(0);
+		break;
+
+		case "KeyA":
+			craft.rVel -= .01;
+		break;
+
+		case "KeyD":
+			craft.rVel += .01;
+		break;
+	}
+});
