@@ -206,13 +206,18 @@ function Ship(mass){
 	this.isShip = true;
 
     this.mass = mass;
-    this.radius = 10;
+    this.radius = 5;
 	var _nose = world.two.makePolygon(0, 0, 5.79, 3);
 	var _fuse = world.two.makeRectangle(0, 0, 10, 30);
 	var _nozz = world.two.makePolygon(0, 0, 5, 3);
+
+	_nose.fill = "#eee";
+	_fuse.fill = "#eee";
+	_nozz.fill = "#666";
+
 	_nose.translation.set(0, -17.85);
 	_nozz.translation.set(0, 17);
-	this.elem = world.two.makeGroup([_nose, _fuse, _nozz]);
+	this.elem = world.two.makeGroup([_nose, _nozz, _fuse]);
 
     this.pos = new Vector();
     this.vel = new Vector();
@@ -228,19 +233,27 @@ function Ship(mass){
     ////////
 
 	this.burn = function(a){
+		if(a != 0){
+			if(this.burnFlash == null)
+			this.burnFlash = setInterval(function(){
+				_nozz.fill = (_nozz.fill == "#ffb" ? _nozz.fill = "#666" : _nozz.fill = "#ffb");
+			}, 50);
+		} else{
+			clearInterval(this.burnFlash);
+			this.burnFlash = null
+			_nozz.fill = "#666";
+		}
 		this.burnAccel = a;
 	}
 
     this.select = function(){  //Select it
         if(world.target != undefined) world.target.unselect();
-        this.elem.fill = "#f00";
         this.selected = true;
         world.target = this;
         this.panelEntry.elem.addClass("entrySelected");
     }
     this.unselect = function(){ //Unselect it
         this.selected = false;
-        this.elem.fill = "#fff";
         world.target = null;
         this.panelEntry.elem.removeClass("entrySelected");
     }
