@@ -18,7 +18,7 @@
 		},
 		{
 			"tag": "{{BODYCOLOR}}",
-			"value": "#333"
+			"value": "#555"
 		},
 		{
 			"tag": "{{BODYTEXTCOLOR}}",
